@@ -591,10 +591,152 @@
     </div>
 
     <script>
+        // Получение буквы по номеру кода
+        function getLetterByNumber(number) {
+            const letterIndex = (number - 1) % 26;
+            return String.fromCharCode(65 + letterIndex);
+        }
+        
+        // Генерация кода по правилам
+        function generateCode(region = null) {
+            // Если регион не указан, выбираем случайный из допустимых (AA до AT)
+            if (!region || region === "any") {
+                const regions = [];
+                for (let i = 0; i < 20; i++) { // AA до AT (20 регионов)
+                    const firstChar = String.fromCharCode(65 + Math.floor(i / 26));
+                    const secondChar = String.fromCharCode(65 + (i % 26));
+                    regions.push(firstChar + secondChar);
+                }
+                region = regions[Math.floor(Math.random() * regions.length)];
+            }
+            
+            // Определяем максимальное количество кодов для региона
+            const regionIndex = (region.charCodeAt(0) - 65) * 26 + (region.charCodeAt(1) - 65);
+            const maxCodes = (regionIndex + 1) * 30;
+            
+            // Генерируем случайный номер кода (1 до maxCodes)
+            const codeNumber = Math.floor(Math.random() * maxCodes) + 1;
+            
+            // Форматируем номер с ведущими нулями
+            const formattedNumber = codeNumber.toString().padStart(3, '0');
+            
+            // Получаем букву по правилам
+            const letter = getLetterByNumber(codeNumber);
+            
+            return `${region}-${formattedNumber}${letter}`;
+        }
+        
+        // Генерация заданного количества кодов
+        function generateCodes(count, region) {
+            const codes = [];
+            const selectedRegion = region === 'any' ? null : region;
+            
+            // Хранение сгенерированных кодов для проверки уникальности
+            const generatedSet = new Set();
+            
+            for (let i = 0; i < count; i++) {
+                let code;
+                let attempts = 0;
+                
+                // Пытаемся сгенерировать уникальный код
+                do {
+                    code = generateCode(selectedRegion);
+                    attempts++;
+                    
+                    // Защита от бесконечного цикла
+                    if (attempts > 10000) {
+                        alert('Не удалось сгенерировать уникальные коды. Возможно, все варианты исчерпаны.');
+                        return codes;
+                    }
+                } while (generatedSet.has(code));
+                
+                codes.push(code);
+                generatedSet.add(code);
+            }
+            
+            return codes;
+        }
+        
+        // Отображение кодов на странице
+        function displayCodes(codes) {
+            const codesContainer = document.getElementById('codesContainer');
+            const resultsCountEl = document.getElementById('resultsCount');
+            
+            codesContainer.innerHTML = '';
+            
+            codes.forEach(code => {
+                const codeElement = document.createElement('div');
+                codeElement.className = 'code-item';
+                codeElement.textContent = code;
+                codesContainer.appendChild(codeElement);
+            });
+            
+            resultsCountEl.textContent = `Сгенерировано: ${codes.length} кодов`;
+        }
+        
+        // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             // Элементы DOM
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = themeToggle.querySelector('i');
             const generateBtn = document.getElementById('generate');
-            const codesContainer = document.getElementById('codesContainer');
-            const countInput = document.getElem
+            const countInput = document.getElementById('count');
+            const regionSelect = document.getElementById('region');
+            const totalGeneratedEl = document.getElementById('totalGenerated');
+            const uniqueCodesEl = document.getElementById('uniqueCodes');
+            
+            // Хранение сгенерированных кодов
+            let generatedCodes = new Set();
+            
+            // Переключение темы (без сохранения)
+            function toggleTheme() {
+                document.body.classList.toggle('dark-theme');
+                
+                if (document.body.classList.contains('dark-theme')) {
+                    themeIcon.className = 'fas fa-moon';
+                } else {
+                    themeIcon.className = 'fas fa-sun';
+                }
+            }
+            
+            // Установка начальной темы (светлая по умолчанию)
+            themeIcon.className = 'fas fa-sun';
+            
+            // Обработчик переключения темы
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // Обработчик кнопки генерации
+            generateBtn.addEventListener('click', function() {
+                const count = parseInt(countInput.value);
+                const region = regionSelect.value;
+                
+                // Проверка корректности ввода
+                if (isNaN(count) || count < 1 || count > 6300) {
+                    alert('Пожалуйста, введите количество от 1 до 6300');
+                    return;
+                }
+                
+                // Генерация кодов
+                const codes = generateCodes(count, region);
+                
+                // Добавляем новые коды в общий набор
+                codes.forEach(code => generatedCodes.add(code));
+                
+                // Отображение кодов
+                displayCodes(codes);
+                
+                // Обновляем статистику
+                totalGeneratedEl.textContent = generatedCodes.size;
+                uniqueCodesEl.textContent = generatedCodes.size;
+            });
+            
+            // Инициализация с 12 случайными кодами
+            const initialCodes = generateCodes(12, 'any');
+            initialCodes.forEach(code => generatedCodes.add(code));
+            displayCodes(initialCodes);
+            totalGeneratedEl.textContent = generatedCodes.size;
+            uniqueCodesEl.textContent = generatedCodes.size;
+        });
+    </script>
+</body>
+</html>
